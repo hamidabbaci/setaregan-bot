@@ -41,17 +41,15 @@ func loadUsers() map[int64]bool {
 type PushMessage struct {
 	Time string
 	Text string
-
 }
 
 func loadHistory() []PushMessage {
-	var history []PushMessage {
-		bytes, err := os.ReadFile("history.json")
-		if err == nil {
-			json.Unmarshal(bytes, &history)
-		}
-		return history
+	var history []PushMessage
+	bytes, err := os.ReadFile("history.json")
+	if err == nil {
+		json.Unmarshal(bytes, &history)
 	}
+	return history
 }
 
 func main() {
