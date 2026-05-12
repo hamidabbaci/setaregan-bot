@@ -1,0 +1,9 @@
+
+
+services:
+  setaregan_bot:
+    build: .
+    container_name: setaregan_bot_container
+    env_file:
+      - .env
+    restart: always
