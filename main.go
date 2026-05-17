@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -36,7 +37,7 @@ func loadUsers() map[int64]bool {
 	return users
 }
 
-// --- ساختار و توابع تاریخچه (مرحله قبل) ---
+// --- ساختار و توابع تاریخچه ---
 type PushMessage struct {
 	Time string
 	Text string
@@ -82,10 +83,20 @@ func main() {
 	fmt.Printf("Authorized on account %s\n", bot.Self.UserName)
 
 	users := loadUsers()
-
-	// --- تغییر ۱: خواندن تاریخچه از فایل در زمان شروع ---
 	msgHistory := loadHistory()
-	// ---------------------------------------------------
+
+	// --- بخش جدید: راه‌اندازی سرور API به صورت موازی با Goroutine ---
+	go func() {
+		http.HandleFunc("/api/history", getHistoryAPI)
+		http.HandleFunc("/api/push", sendPushAPI(bot, users, myAdminID, &msgHistory))
+
+		fmt.Println("API Server is running on port 9865...")
+		err := http.ListenAndServe(":9865", nil)
+		if err != nil {
+			log.Fatal("خطا در راه‌اندازی سرور API: ", err)
+		}
+	}()
+	// -----------------------------------------------------------
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
@@ -111,7 +122,6 @@ func main() {
 			if strings.HasPrefix(msgText, "push ") {
 				finalMessage := strings.TrimPrefix(msgText, "push ")
 
-				// --- تغییر ۲: ثبت زمان و ذخیره پیام در تاریخچه ---
 				currentTime := time.Now().Format("2006-01-02 15:04:05")
 				newRecord := PushMessage{
 					Time: currentTime,
@@ -120,7 +130,6 @@ func main() {
 
 				msgHistory = append(msgHistory, newRecord)
 				saveHistory(msgHistory)
-				// -------------------------------------------------
 
 				for userID := range users {
 					sendBotMessage(bot, userID, finalMessage)
@@ -129,7 +138,6 @@ func main() {
 
 				sendBotMessage(bot, myAdminID, "پوش مسیج با موفقیت ارسال شد و در تاریخچه ثبت گردید!")
 
-				// --- تغییر ۳: اضافه شدن دستور history برای ادمین ---
 			} else if msgText == "history" {
 
 				if len(msgHistory) == 0 {
@@ -143,7 +151,6 @@ func main() {
 
 					sendBotMessage(bot, myAdminID, historyText)
 				}
-				// --------------------------------------------------
 
 			} else {
 				sendBotMessage(bot, myAdminID, "برای ارسال پیام بنویسید:\npush پیام شما\n\nبرای دیدن تاریخچه بنویسید:\nhistory")

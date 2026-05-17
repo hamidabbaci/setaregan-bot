@@ -4,6 +4,9 @@ services:
   setaregan_bot:
     build: .
     container_name: setaregan_bot_container
+
+    ports:
+      - "9865:9865"
     env_file:
       - .env
     restart: always
